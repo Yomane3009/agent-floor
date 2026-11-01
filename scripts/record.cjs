@@ -116,7 +116,7 @@ const night = `window.dispatchEvent(new KeyboardEvent('keydown', { key: 't' }))`
 const betweenOffices = (dx, dy, dz) =>
   `(() => { __store.select(null); const a = __floor.rooms.get('checkout-redesign').center, b = __floor.rooms.get('auth-service').center; const t = a.clone().add(b).multiplyScalar(0.5); t.y = 0.8; const p = t.clone(); p.x += ${dx}; p.y += ${dy}; p.z += ${dz}; __floor.flyTo(t, p, null); })()`;
 const outro = (sub) =>
-  card('outro', sub, '<div class="cmd">npm i -g agent-floor</div><div class="url">github.com/develop212/agent-floor</div>');
+  card('outro', sub, '<div class="cmd">npm i -g agent-floor</div><div class="url">github.com/Yomane3009/agent-floor</div>');
 
 const STORIES = {
   // 25 seconds, vertical, fast cuts.

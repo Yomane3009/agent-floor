@@ -6,7 +6,7 @@ Every agent gets a character and a desk inside one office building. Each project
 
 Works with **Claude Code**, **Codex**, **Cursor**, and anything else that can send an HTTP request.
 
-**[Try the live demo](https://develop212.github.io/agent-floor/)** (runs in your browser, no install).
+**[Try the live demo](https://yomane3009.github.io/agent-floor/)** (runs in your browser, no install).
 
 ![Agent Floor: a glass-walled team office with agents at their desks](docs/hero.jpg)
 
@@ -16,6 +16,14 @@ Works with **Claude Code**, **Codex**, **Cursor**, and anything else that can se
 
 ```bash
 npm i -g agent-floor
+agent-floor setup claude --write
+```
+
+Or install from source:
+
+```bash
+git clone https://github.com/Yomane3009/agent-floor && cd agent-floor
+npm install && npm run build && npm link
 agent-floor setup claude --write
 ```
 
@@ -139,7 +147,7 @@ agent-floor emit, curl, your code ───┼──► POST /events ──► r
 ## Develop
 
 ```bash
-git clone https://github.com/develop212/agent-floor
+git clone https://github.com/Yomane3009/agent-floor
 cd agent-floor
 npm install
 npm run dev        # floor server on :4317 + Vite on :5173
