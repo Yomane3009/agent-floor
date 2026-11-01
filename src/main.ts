@@ -4,6 +4,7 @@ import './styles.css';
 import { connect, isDemoRunning, startDemo } from './core/connection';
 import { store } from './core/store';
 import { Hud } from './ui/hud';
+import { Timeline } from './ui/timeline';
 import { World } from './world/World';
 import type { ThemeName } from './world/palette';
 
@@ -62,7 +63,9 @@ async function boot() {
     startDemo: () => {
       if (!isDemoRunning()) startDemo();
     },
+    toggleReplay: () => timeline.toggle(),
   });
+  const timeline = new Timeline(app);
 
   function applyTheme(next: ThemeName, persist = false) {
     theme = next;
@@ -90,6 +93,7 @@ async function boot() {
       lastSelected = store.selected;
       world.setSelected(store.selected);
     }
+    hud.setReplay(Boolean(store.replay));
     hud.setMode(store.mode);
     hud.setState(store.state, store.selected);
   });
@@ -106,7 +110,7 @@ async function boot() {
     box.className = 'stats';
     document.body.append(box);
     // Handles for scripted captures (scripts/capture.cjs, scripts/record.cjs).
-    Object.assign(window, { __floor: world, __store: store, __hud: hud });
+    Object.assign(window, { __floor: world, __store: store, __hud: hud, __timeline: timeline });
     setInterval(() => {
       const p = world.perf;
       box.textContent = `${p.fps.toFixed(0)} fps  cpu ${p.frameMs.toFixed(1)} ms\n${p.calls} draws  ${(p.triangles / 1000).toFixed(0)}k tris\n${p.agents} agents  sync ${p.syncMs.toFixed(1)} ms (worst ${p.worstSyncMs.toFixed(0)})`;

@@ -47,6 +47,7 @@ export interface HudActions {
   frameAll(): void;
   toggleTheme(): void;
   startDemo(): void;
+  toggleReplay(): void;
 }
 
 const SETUP: Record<string, { title: string; steps: { label: string; code: string }[]; note: string }> = {
@@ -100,6 +101,8 @@ export class Hud {
   private sheet = el('div', 'sheet-wrap');
   private empty = el('div', 'empty glass');
   private themeBtn: HTMLButtonElement;
+  private replayBtn: HTMLButtonElement;
+  private replaying = false;
   private teamsKey = '';
   private cardKey = '';
   private state: WorldState | null = null;
@@ -126,6 +129,7 @@ export class Hud {
       return b;
     };
     btn('cornersOut', 'Show everyone (F)', () => actions.frameAll());
+    this.replayBtn = btn('replay', 'Replay what happened (R)', () => actions.toggleReplay());
     this.themeBtn = btn('moon', 'Switch theme (T)', () => actions.toggleTheme());
     btn('plug', 'Connect your agents', () => this.openSheet());
     const gh = el('a', 'icon-btn', icon('github')) as HTMLAnchorElement;
@@ -170,10 +174,18 @@ export class Hud {
     this.themeBtn.innerHTML = icon(dark ? 'sun' : 'moon');
   }
 
+  setReplay(on: boolean) {
+    if (this.replaying === on) return;
+    this.replaying = on;
+    this.replayBtn.classList.toggle('on', on);
+    this.replayBtn.setAttribute('aria-pressed', String(on));
+    this.setMode(this.mode);
+  }
+
   setMode(mode: ConnectionMode) {
     this.mode = mode;
-    const label = { live: 'Live', demo: 'Demo', connecting: 'Connecting', offline: 'Offline' }[mode];
-    this.modePill.className = `mode ${mode}`;
+    const label = this.replaying ? 'Replay' : { live: 'Live', demo: 'Demo', connecting: 'Connecting', offline: 'Offline' }[mode];
+    this.modePill.className = `mode ${this.replaying ? 'replay' : mode}`;
     this.modePill.innerHTML = `<span class="pulse" aria-hidden="true"></span>${label}`;
     this.root.classList.toggle('is-demo', mode === 'demo');
     this.updateEmpty();
