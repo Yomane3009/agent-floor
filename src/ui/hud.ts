@@ -50,11 +50,14 @@ export interface HudActions {
   toggleReplay(): void;
 }
 
+// Not published to npm yet: install from source, and `npm link` puts `agent-floor` on the PATH.
+const INSTALL = `git clone ${REPO_URL}\ncd agent-floor && npm install && npm run build && npm link`;
+
 const SETUP: Record<string, { title: string; steps: { label: string; code: string }[]; note: string }> = {
   claude: {
     title: 'Claude Code',
     steps: [
-      { label: 'Install', code: 'npm i -g agent-floor' },
+      { label: 'Install (until it is on npm)', code: INSTALL },
       { label: 'Add the hooks to ~/.claude/settings.json', code: 'agent-floor setup claude --write' },
     ],
     note: 'Agent Floor opens by itself when a session starts. Every session gets an office named after its project folder; subagents walk in, get briefed, and report back.',
@@ -62,7 +65,7 @@ const SETUP: Record<string, { title: string; steps: { label: string; code: strin
   codex: {
     title: 'Codex',
     steps: [
-      { label: 'Install', code: 'npm i -g agent-floor' },
+      { label: 'Install (until it is on npm)', code: INSTALL },
       { label: 'Print the notify line for ~/.codex/config.toml', code: 'agent-floor setup codex' },
     ],
     note: 'Codex reports at the end of each turn, so its desk updates once per reply.',
@@ -70,7 +73,7 @@ const SETUP: Record<string, { title: string; steps: { label: string; code: strin
   cursor: {
     title: 'Cursor',
     steps: [
-      { label: 'Install', code: 'npm i -g agent-floor' },
+      { label: 'Install (until it is on npm)', code: INSTALL },
       { label: 'Add the hooks to ~/.cursor/hooks.json', code: 'agent-floor setup cursor --write' },
     ],
     note: 'Agent Floor only listens. It never answers a permission prompt for you.',
@@ -78,7 +81,8 @@ const SETUP: Record<string, { title: string; steps: { label: string; code: strin
   http: {
     title: 'Anything else',
     steps: [
-      { label: 'Start the floor', code: 'npx agent-floor' },
+      { label: 'Install (until it is on npm)', code: INSTALL },
+      { label: 'Start the floor', code: 'agent-floor start' },
       {
         label: 'Post an event from any language',
         code: `curl -X POST localhost:4317/events \\\n  -H 'content-type: application/json' \\\n  -d '{"type":"tool","agent":"bot-1","team":"Payments","tool":"Bash","activity":"Running tests"}'`,
