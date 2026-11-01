@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyEvent, createState, normalizeEvent, sweep } from '../shared/protocol.js';
+import { applyEvent, createState, normalizeEvent, removeAgents, sweep } from '../shared/protocol.js';
 import { fromClaude } from '../adapters/claude.mjs';
 import { fromCodex } from '../adapters/codex.mjs';
 import { fromCursor, cursorResponse } from '../adapters/cursor.mjs';
@@ -81,4 +81,35 @@ test('sweep removes departed agents and empty teams', () => {
   run(s, { type: 'leave', agent: 'a', ts: 1000 });
   assert.deepEqual(sweep(s, 1000 + 60_000), ['a']);
   assert.equal(Object.keys(s.teams).length, 0);
+});
+
+test('removeAgents drops agents and empty teams, and reports what it removed', () => {
+  const s = createState();
+  run(s, { type: 'join', agent: 'a', team: 'One' });
+  run(s, { type: 'join', agent: 'b', team: 'Two' });
+  assert.deepEqual(removeAgents(s, ['b', 'ghost']), ['b']);
+  assert.ok(s.agents.a && !s.agents.b);
+  assert.deepEqual(Object.keys(s.teams), ['one']);
+});
+
+test('replaying the recorded events onto the starting state rebuilds the floor exactly', () => {
+  const live = createState();
+  run(live, { type: 'join', agent: 'lead', team: 'Core', ts: 1 });
+  const base = structuredClone(live);
+  const log = [
+    { type: 'tool', agent: 'lead', tool: 'Bash', activity: 'Tests', ts: 2 },
+    { type: 'join', agent: 'helper', parent: 'lead', role: 'Explore', ts: 3 },
+    { type: 'message', agent: 'helper', text: 'Found it', status: 'done', ts: 4 },
+    { type: 'task', agent: 'lead', task: 'Ship replay', ts: 5 },
+  ].map((raw) => normalizeEvent(raw));
+  for (const ev of log) applyEvent(live, ev);
+  const replayed = structuredClone(base);
+  for (const ev of log) applyEvent(replayed, ev);
+  replayed.seq = live.seq;
+  assert.deepEqual(replayed, live);
+  // Part way through: the helper has not arrived yet.
+  const early = structuredClone(base);
+  applyEvent(early, log[0]);
+  assert.equal(early.agents.lead.tool, 'Bash');
+  assert.equal(early.agents.helper, undefined);
 });

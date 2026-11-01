@@ -22,6 +22,9 @@ const FORMATS = {
 };
 const F = FORMATS[STORY];
 if (!F) throw new Error(`Unknown STORY ${STORY}`);
+// SCALE=2 (reel) or SCALE=1 (trailer) renders at delivery size with no supersampling:
+// much faster on machines without a GPU, slightly softer edges.
+if (process.env.SCALE) F.scale = Number(process.env.SCALE);
 const FPS = Number(process.env.FPS) || 60;
 const RW = F.cssW * F.scale;
 const RH = F.cssH * F.scale;
@@ -90,6 +93,9 @@ const OVERLAY_CSS = `
     #rec .mark i { width: 20px; height: 20px; border-radius: 6px; }
     #rec .cmd { padding: 11px 18px; margin-top: 24px; font-size: 17px; }
     #rec .url { font-size: 12px; }
+    /* Replay bar: inside the safe area, just above the caption/audio zone. */
+    .timeline { left: 30px !important; right: 70px !important; width: auto !important; bottom: 196px !important;
+      transform: none !important; }
   }
 `;
 
@@ -113,6 +119,8 @@ const show = (id) =>
   `(() => { const c = document.getElementById('${id}'); const els = [c, c.querySelector('.inner')]; els.forEach(e => e.style.transition = 'none'); c.classList.add('on'); c.offsetWidth; els.forEach(e => e.style.transition = ''); })()`;
 const off = (id) => `document.getElementById('${id}').classList.remove('on')`;
 const night = `window.dispatchEvent(new KeyboardEvent('keydown', { key: 't' }))`;
+// Rewind to the start of the recording and play it back at `speed`; it returns to live by itself.
+const rewind = (speed) => `(() => { __store.select(null); __store.startReplay(${speed}); __floor.frameAll(); })()`;
 const betweenOffices = (dx, dy, dz) =>
   `(() => { __store.select(null); const a = __floor.rooms.get('checkout-redesign').center, b = __floor.rooms.get('auth-service').center; const t = a.clone().add(b).multiplyScalar(0.5); t.y = 0.8; const p = t.clone(); p.x += ${dx}; p.y += ${dy}; p.z += ${dz}; __floor.flyTo(t, p, null); })()`;
 const outro = (sub) =>
@@ -140,23 +148,25 @@ const STORIES = {
       [12.6, ev({ type: 'tool', agent: 'pixel', tool: 'Edit', activity: 'Editing CheckoutForm.tsx' })],
       [12.6, `__store.select('pixel')`],
       [12.7, say('Tap anyone for live status.')],
-      [16.0, betweenOffices(2, 24, 13)],
-      [16.1, say('Watch work fly between teams.')],
-      [16.6, ev({ type: 'message', agent: 'relay', to: 'ledger', text: 'New token format is live' })],
-      [17.5, ev({ type: 'message', agent: 'warden', to: 'atlas', text: 'Auth is ready for checkout' })],
-      [18.4, ev({ type: 'message', agent: 'ledger', to: 'cipher', text: 'Thanks, wiring it up' })],
-      [19.4, `${night}; __floor.focusTeam('checkout-redesign')`],
-      [19.5, say('Day shift. Night shift.')],
-      [20.4, `__floor.controls.autoRotate = true; __floor.controls.autoRotateSpeed = 1.4`],
-      [21.8, hush],
-      [21.9, on('outro')],
+      [15.4, betweenOffices(2, 24, 13)],
+      [15.5, say('Watch work fly between teams.')],
+      [15.9, ev({ type: 'message', agent: 'relay', to: 'ledger', text: 'New token format is live' })],
+      [16.6, ev({ type: 'message', agent: 'warden', to: 'atlas', text: 'Auth is ready for checkout' })],
+      [17.3, ev({ type: 'message', agent: 'ledger', to: 'cipher', text: 'Thanks, wiring it up' })],
+      [18.2, rewind(10)],
+      [18.3, say('Missed something? Rewind it.')],
+      [21.2, `${night}; __store.stopReplay(); __floor.focusTeam('checkout-redesign')`],
+      [21.3, say('Day shift. Night shift.')],
+      [21.9, `__floor.controls.autoRotate = true; __floor.controls.autoRotateSpeed = 1.4`],
+      [22.6, hush],
+      [22.7, on('outro')],
     ],
   },
 
-  // 74 seconds, landscape, the full walkthrough.
+  // 81 seconds, landscape, the full walkthrough.
   trailer: {
     warmup: 0.5,
-    length: 73.7,
+    length: 80.7,
     overlay: card('title', 'A live 3D office for your coding agents') + '<div class="cap" id="cap"></div>' + outro('Open source. Runs on your machine.'),
     beats: [
       [0, show('title')],
@@ -178,17 +188,19 @@ const STORIES = {
       [42.9, `__floor.focusTeam('auth-service')`],
       [42.9, ev({ type: 'status', agent: 'warden', status: 'waiting', activity: 'Needs your approval to push' })],
       [42.9, say('And they raise a hand when they need you.')],
-      [49.9, `${night}; __floor.frameAll()`],
-      [49.9, say('Day shift. Night shift.', 'Desk lamps and monitors glow after dark.')],
-      [53.4, `__floor.controls.autoRotate = true; __floor.controls.autoRotateSpeed = 0.6`],
-      [57.4, `__floor.controls.autoRotate = false`],
-      [57.4, `${hush}; __hud.openSheet()`],
-      [57.4, say('Works with Claude Code, Codex, Cursor, or anything that speaks HTTP.')],
-      [60.0, `document.querySelector('.tab[data-tab="codex"]').click()`],
-      [62.2, `document.querySelector('.tab[data-tab="cursor"]').click()`],
-      [64.4, `document.querySelector('.tab[data-tab="http"]').click()`],
-      [66.6, `${hush}; __hud.closeSheet()`],
-      [67.2, on('outro')],
+      [49.9, rewind(8)],
+      [49.9, say('Missed something? Press R to rewind.', 'Replay the last 30 minutes, paper planes and all. Drag to jump to any moment.')],
+      [56.9, `${night}; __store.stopReplay(); __floor.frameAll()`],
+      [56.9, say('Day shift. Night shift.', 'Desk lamps and monitors glow after dark.')],
+      [60.4, `__floor.controls.autoRotate = true; __floor.controls.autoRotateSpeed = 0.6`],
+      [64.4, `__floor.controls.autoRotate = false`],
+      [64.4, `${hush}; __hud.openSheet()`],
+      [64.4, say('Works with Claude Code, Codex, Cursor, or anything that speaks HTTP.')],
+      [67.0, `document.querySelector('.tab[data-tab="codex"]').click()`],
+      [69.2, `document.querySelector('.tab[data-tab="cursor"]').click()`],
+      [71.4, `document.querySelector('.tab[data-tab="http"]').click()`],
+      [73.6, `${hush}; __hud.closeSheet()`],
+      [74.2, on('outro')],
     ],
   },
 };

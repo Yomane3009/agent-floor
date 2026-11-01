@@ -247,6 +247,16 @@ button {
   background: var(--accent);
 }
 
+.mode.replay .pulse {
+  background: #8b5cf6;
+}
+
+.icon-btn.on,
+.icon-btn.on:hover {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
 .mode.connecting .pulse {
   background: #f5a524;
   animation: blink 1s ease-in-out infinite;
@@ -1031,6 +1041,166 @@ button {
 }
 
 /* ---------------------------------------------------------------- small screens */
+
+/* ---------------------------------------------------------------- replay timeline */
+
+.timeline {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 52px);
+  width: min(680px, calc(100vw - 32px));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 4px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 12px);
+  transition: opacity 240ms ease, transform 420ms var(--ease-out);
+}
+
+.timeline.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+
+.timeline .speed {
+  height: 28px;
+  min-width: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--text);
+  font: 600 12px/1 'Geist Mono Variable', ui-monospace, monospace;
+  cursor: pointer;
+}
+
+.timeline .speed:hover {
+  background: var(--fill-2);
+}
+
+.timeline .track {
+  position: relative;
+  flex: 1;
+  min-width: 80px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--fill);
+  cursor: pointer;
+  touch-action: none;
+  overflow: hidden;
+}
+
+.timeline .track:focus-visible,
+.timeline .speed:focus-visible,
+.timeline .live-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.timeline canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.timeline .fill {
+  position: absolute;
+  inset: 0;
+  background: var(--fill-2);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  pointer-events: none;
+}
+
+.timeline .head {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--text);
+  box-shadow: 0 0 0 2px var(--glass-strong);
+  pointer-events: none;
+}
+
+.timeline .when {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 76px;
+  font: 500 11px/1.25 'Geist Mono Variable', ui-monospace, monospace;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.timeline .when b {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.timeline .live-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 120ms ease-out, filter 160ms ease;
+}
+
+.timeline .live-btn .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.timeline .live-btn:hover {
+  filter: brightness(1.06);
+}
+
+.timeline .live-btn:active {
+  transform: scale(0.97);
+}
+
+.replaying .hint,
+.replaying .demo-note {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  .timeline .when span {
+    display: none;
+  }
+
+  .timeline .when {
+    min-width: 0;
+  }
+
+  .timeline .live-btn span {
+    display: none;
+  }
+
+  .timeline .live-btn {
+    padding: 0 8px;
+  }
+
+  .replaying .card {
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 100px);
+  }
+}
 
 @media (max-width: 767px) {
   .brand-name {

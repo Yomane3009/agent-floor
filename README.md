@@ -50,7 +50,9 @@ No agents yet? Click **Watch demo**, or run `agent-floor demo` in a second termi
 
 Coloured magnets on each whiteboard show every team member's status at a glance.
 
-**Controls:** drag to pan, right-drag to orbit, scroll to zoom, click an agent or a room. `F` frames everyone, `[` and `]` step through agents, `T` switches day and night, `Esc` closes things. On touch: one finger pans, two fingers zoom and rotate.
+**Replay.** Missed something? Press `R` (or the clock button) to rewind. The floor replays everything it has seen in the last 30 minutes at 4× speed, paper planes and all. Drag the timeline to jump to any moment: orange ticks are messages, amber ticks are agents waiting on you or hitting errors, green ticks are arrivals. `Space` pauses, `←` and `→` step 10 seconds, and **Live** takes you back to now. Replay runs entirely in your browser, from the same reducer the server uses, so what you see is exactly what happened.
+
+**Controls:** drag to pan, right-drag to orbit, scroll to zoom, click an agent or a room. `F` frames everyone, `[` and `]` step through agents, `R` opens replay, `T` switches day and night, `Esc` closes things. On touch: one finger pans, two fingers zoom and rotate.
 
 ## Connect your tools
 

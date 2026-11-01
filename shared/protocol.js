@@ -267,8 +267,22 @@ export function sweep(
       (a.status === 'done' && a.parent && age > doneHelperMs) ||
       age > staleMs
     ) {
-      delete state.agents[a.id];
       removed.push(a.id);
+    }
+  }
+  return removeAgents(state, removed);
+}
+
+/**
+ * Remove agents by id, and any team left with nobody in it.
+ * Returns the ids that were actually present.
+ */
+export function removeAgents(state, ids) {
+  const removed = [];
+  for (const id of ids) {
+    if (state.agents[id]) {
+      delete state.agents[id];
+      removed.push(id);
     }
   }
   const used = new Set(Object.values(state.agents).map((a) => a.team));

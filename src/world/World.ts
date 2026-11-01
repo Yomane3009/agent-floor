@@ -30,7 +30,8 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import type { Agent, Effect, WorldState } from '../../shared/protocol';
+import type { Agent, WorldState } from '../../shared/protocol';
+import type { ViewEffect } from '../core/store';
 import { Character, findAgentId, PICK_LAYER } from './Character';
 import { Courier } from './Courier';
 import { computeLayout, SeatBook, type BuildingLayout, type RoomLayout } from './layout';
@@ -306,6 +307,8 @@ export class World {
         else character.arrive(room.entry, seat);
         s = { character, desk, team: agent.team, leaving: false };
         this.agents.set(agent.id, s);
+        // Rebuilt after a jump in time: keep the highlight on whoever is selected.
+        if (agent.id === this.selected) character.setSelected(true);
       } else {
         s.desk.setSeat(seat);
         s.character.setSeat(seat);
@@ -356,13 +359,13 @@ export class World {
     s.character.leave(exit, () => this.dropAgent(id));
   }
 
-  private dropAgent(id: string) {
+  private dropAgent(id: string, keepSelection = false) {
     const s = this.agents.get(id);
     if (!s) return;
     s.character.dispose();
     s.desk.dispose();
     this.agents.delete(id);
-    if (this.selected === id) this.cb.onPick(null, null);
+    if (this.selected === id && !keepSelection) this.cb.onPick(null, null);
     // Remove empty rooms once everyone has walked out.
     const team = s.team;
     if (![...this.agents.values()].some((a) => a.team === team) && !this.layout.has(team)) {
@@ -371,19 +374,22 @@ export class World {
     }
   }
 
-  reset() {
-    for (const id of [...this.agents.keys()]) this.dropAgent(id);
+  /** Clear the floor. `keepCamera` is for jumps in time, where the view should stay put. */
+  reset(keepCamera = false) {
+    for (const id of [...this.agents.keys()]) this.dropAgent(id, keepCamera);
     for (const r of this.rooms.values()) r.dispose();
     this.rooms.clear();
     this.courier.clear();
     this.book = new SeatBook();
     this.instantNext = true;
+    if (keepCamera) return;
     this.hasFramed = false;
     this.autoFrame = true;
   }
 
-  handleEffect(effect: Effect) {
+  handleEffect(effect: ViewEffect) {
     if (effect.kind === 'reset') return this.reset();
+    if (effect.kind === 'jump') return this.reset(true);
     if (effect.kind !== 'message') return;
     const from = this.agents.get(effect.from);
     const to = this.agents.get(effect.to);

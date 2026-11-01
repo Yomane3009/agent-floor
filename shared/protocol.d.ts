@@ -92,4 +92,5 @@ export function createState(): WorldState;
 export function slug(value: unknown): string;
 export function normalizeEvent(raw: unknown, now?: number): FloorEvent | null;
 export function applyEvent(state: WorldState, ev: FloorEvent | null): { state: WorldState; effects: Effect[] };
+export function removeAgents(state: WorldState, ids: string[]): string[];
 export function sweep(state: WorldState, now?: number, opts?: { offlineMs?: number; doneHelperMs?: number; staleMs?: number }): string[];
