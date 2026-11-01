@@ -13,6 +13,10 @@ import { applyEvent, createState, normalizeEvent, sweep, PROTOCOL_VERSION } from
 
 const here = dirname(fileURLToPath(import.meta.url));
 const MAX_BODY = 256 * 1024;
+// Recent events, sent with every snapshot so a window that opens mid-run can
+// still show the office log from the start.
+const RECENT_MS = 30 * 60_000;
+const RECENT_MAX = 2000;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -33,6 +37,7 @@ export function startServer({
 } = {}) {
   const state = createState();
   const clients = new Set();
+  let recent = [];
 
   function broadcast(name, data) {
     const frame = `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -42,7 +47,15 @@ export function startServer({
   function ingest(raw) {
     const ev = normalizeEvent(raw);
     if (!ev) return false;
-    const { effects } = applyEvent(state, ev);
+    const { effects, actor } = applyEvent(state, ev);
+    if (ev.type === 'reset') recent = [];
+    else {
+      recent.push(actor && actor !== ev.agent ? { ...ev, actor } : ev);
+      const cutoff = ev.ts - RECENT_MS;
+      let drop = 0;
+      while (drop < recent.length && (recent.length - drop > RECENT_MAX || recent[drop].ts < cutoff)) drop++;
+      if (drop) recent = recent.slice(drop);
+    }
     broadcast('event', { event: ev, effects });
     return true;
   }
@@ -136,7 +149,7 @@ export function startServer({
           Connection: 'keep-alive',
           'X-Accel-Buffering': 'no',
         });
-        res.write(`retry: 1500\nevent: snapshot\ndata: ${JSON.stringify({ version: PROTOCOL_VERSION, state })}\n\n`);
+        res.write(`retry: 1500\nevent: snapshot\ndata: ${JSON.stringify({ version: PROTOCOL_VERSION, state, recent })}\n\n`);
         clients.add(res);
         req.on('close', () => clients.delete(res));
         return;

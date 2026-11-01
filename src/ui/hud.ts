@@ -31,6 +31,7 @@ interface Tag {
   last: { t: string; o: string; z: string; near: boolean; sel: boolean };
   name: HTMLElement;
   role: HTMLElement;
+  stage: HTMLElement;
   dot: HTMLElement;
   activity: HTMLElement;
   key: string;
@@ -48,6 +49,7 @@ export interface HudActions {
   toggleTheme(): void;
   startDemo(): void;
   toggleReplay(): void;
+  toggleLog(): void;
 }
 
 // Not published to npm yet: install from source, and `npm link` puts `agent-floor` on the PATH.
@@ -106,6 +108,7 @@ export class Hud {
   private empty = el('div', 'empty glass');
   private themeBtn: HTMLButtonElement;
   private replayBtn: HTMLButtonElement;
+  private logBtn: HTMLButtonElement;
   private replaying = false;
   private teamsKey = '';
   private cardKey = '';
@@ -134,6 +137,7 @@ export class Hud {
     };
     btn('cornersOut', 'Show everyone (F)', () => actions.frameAll());
     this.replayBtn = btn('replay', 'Replay what happened (R)', () => actions.toggleReplay());
+    this.logBtn = btn('log', 'Office log (L)', () => actions.toggleLog());
     this.themeBtn = btn('moon', 'Switch theme (T)', () => actions.toggleTheme());
     btn('plug', 'Connect your agents', () => this.openSheet());
     const gh = el('a', 'icon-btn', icon('github')) as HTMLAnchorElement;
@@ -176,6 +180,11 @@ export class Hud {
 
   setTheme(dark: boolean) {
     this.themeBtn.innerHTML = icon(dark ? 'sun' : 'moon');
+  }
+
+  setLogOpen(on: boolean) {
+    this.logBtn.classList.toggle('on', on);
+    this.logBtn.setAttribute('aria-pressed', String(on));
   }
 
   setReplay(on: boolean) {
@@ -247,7 +256,7 @@ export class Hud {
       this.cardKey = '';
       return;
     }
-    const key = `${a.id}|${a.status}|${a.activity}|${a.history.length}|${a.history.at(-1)?.ts}|${Math.floor(Date.now() / 10000)}`;
+    const key = `${a.id}|${a.status}|${a.activity}|${a.stage ?? ''}|${a.history.length}|${a.history.at(-1)?.ts}|${Math.floor(Date.now() / 10000)}`;
     if (key === this.cardKey) return;
     this.cardKey = key;
     const team = s.teams[a.team];
@@ -262,7 +271,7 @@ export class Hud {
         <span class="avatar" style="--shirt:${shirtFor(a.role)};--skin:${look.skin};--hair:${look.hair}" aria-hidden="true"><i></i></span>
         <div class="who">
           <h2>${esc(a.name)}</h2>
-          <p>${esc(a.role)} in ${esc(team?.name || a.team)}</p>
+          <p>${a.stage ? `<span class="card-stage">${esc(a.stage)}</span>` : ''}${esc(a.role)} in ${esc(team?.name || a.team)}</p>
         </div>
         <button type="button" class="icon-btn close" aria-label="Close">${icon('x')}</button>
       </div>
@@ -367,13 +376,14 @@ export class Hud {
 
   private makeTag(agent: Agent): Tag {
     const root = el('div', 'tag');
-    root.innerHTML = `<div class="tag-line"><span class="dot"></span><b></b><span class="role"></span></div><div class="activity"></div>`;
+    root.innerHTML = `<div class="tag-line"><span class="dot"></span><span class="tag-stage"></span><b></b><span class="role"></span></div><div class="activity"></div>`;
     root.addEventListener('click', () => this.actions.select(agent.id));
     this.tagsLayer.append(root);
     const tag: Tag = {
       root,
       name: root.querySelector('b')!,
       role: root.querySelector('.role')!,
+      stage: root.querySelector('.tag-stage')!,
       dot: root.querySelector('.dot')!,
       activity: root.querySelector('.activity')!,
       key: '',
@@ -384,10 +394,12 @@ export class Hud {
   }
 
   private updateTag(tag: Tag, a: Agent) {
-    const key = `${a.name}|${a.role}|${a.status}|${a.activity}`;
+    const key = `${a.name}|${a.role}|${a.status}|${a.activity}|${a.stage ?? ''}`;
     if (key === tag.key) return;
     tag.key = key;
     tag.name.textContent = a.name;
+    tag.stage.textContent = a.stage || '';
+    tag.stage.hidden = !a.stage;
     tag.role.textContent = a.role.toLowerCase() === a.name.toLowerCase() ? '' : a.role;
     tag.dot.style.background = STATUS_COLORS[a.status];
     tag.root.dataset.status = a.status;
@@ -480,6 +492,7 @@ export class Hud {
         else this.actions.select(null);
       } else if (e.key === 'f' || e.key === 'F') this.actions.frameAll();
       else if (e.key === 't' || e.key === 'T') this.actions.toggleTheme();
+      else if (e.key === 'l' || e.key === 'L') this.actions.toggleLog();
       else if (e.key === ']' || e.key === '[') {
         const ids = Object.values(this.state?.agents || {})
           .sort((a, b) => (this.state!.teams[a.team]?.order ?? 0) - (this.state!.teams[b.team]?.order ?? 0) || a.joinedAt - b.joinedAt)

@@ -5,6 +5,23 @@ import { describeTool, pretty, shortId, shortToolName, slugKey, teamFromCwd } fr
 
 const SPAWN_TOOLS = new Set(['Task', 'Agent']);
 
+/** "Stage 2" when a spawn's description or prompt names its stage, so the floor can label the desk. */
+export function stageOf(...texts) {
+  for (const t of texts) {
+    const m = /\bstage\s*#?\s*(\d{1,2})\b/i.exec(String(t ?? '').slice(0, 400));
+    if (m) return `Stage ${Number(m[1])}`;
+  }
+  return undefined;
+}
+
+/**
+ * Crew mode (AGENT_FLOOR_CREW=1) is for pipelines: helpers stay at their desks
+ * until the session ends, and the lead shows "needs you" as soon as it stops.
+ */
+function crewMode() {
+  return /^(1|true|yes|on)$/i.test(String(process.env.AGENT_FLOOR_CREW || ''));
+}
+
 /**
  * @param {Record<string, any>} input hook payload
  * @param {{ source?: string, name?: string }} [opts]
@@ -40,6 +57,7 @@ export function fromClaude(input, opts = {}) {
       if (SPAWN_TOOLS.has(tool)) {
         const type = toolInput.subagent_type || 'general-purpose';
         const key = input.tool_use_id || slugKey(toolInput.description || type);
+        const stage = stageOf(toolInput.description, toolInput.prompt);
         return [
           { type: 'tool', ...actor, tool, activity: describeTool(tool, toolInput) },
           {
@@ -53,6 +71,8 @@ export function fromClaude(input, opts = {}) {
             status: 'thinking',
             activity: toolInput.description || 'Starting',
             text: toolInput.description || toolInput.prompt,
+            ...(stage ? { stage } : {}),
+            ...(crewMode() ? { stay: true } : {}),
           },
         ];
       }
@@ -82,7 +102,7 @@ export function fromClaude(input, opts = {}) {
       return [{ type: 'status', ...base, status: 'waiting', activity: input.message || 'Needs your input' }];
 
     case 'Stop':
-      return [{ type: 'status', ...base, status: 'idle', activity: 'Waiting for you' }];
+      return [{ type: 'status', ...base, status: crewMode() ? 'waiting' : 'idle', activity: 'Waiting for you' }];
 
     case 'SubagentStop':
       if (!sub) return [];

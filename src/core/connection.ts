@@ -61,8 +61,8 @@ export function connect() {
       opened = true;
       window.clearTimeout(fallback);
       stopDemo();
-      const { state } = JSON.parse((msg as MessageEvent).data) as { state: WorldState };
-      store.replace(state);
+      const { state, recent } = JSON.parse((msg as MessageEvent).data) as { state: WorldState; recent?: (FloorEvent & { actor?: string })[] };
+      store.replace(state, recent);
       store.setMode('live');
     });
     es.addEventListener('event', (msg) => {

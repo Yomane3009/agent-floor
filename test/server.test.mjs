@@ -26,3 +26,30 @@ test('server accepts events and serves state', async () => {
     await floor.close();
   }
 });
+
+test('the stream snapshot carries recent events for the office log', async () => {
+  const floor = await startServer({ port: 0, log: () => {} });
+  const { port } = floor.server.address();
+  const base = `http://127.0.0.1:${port}`;
+  try {
+    await fetch(`${base}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([
+        { type: 'join', agent: 'lead', team: 'T' },
+        { type: 'join', agent: 'kid', parent: 'lead', text: 'Stage 1 brief', stage: 'Stage 1' },
+      ]),
+    });
+    const ctrl = new AbortController();
+    const res = await fetch(`${base}/stream`, { signal: ctrl.signal });
+    const reader = res.body.getReader();
+    let text = '';
+    while (!text.includes('\n\n')) text += new TextDecoder().decode((await reader.read()).value);
+    ctrl.abort();
+    const data = JSON.parse(text.split('\n').find((l) => l.startsWith('data: ')).slice(6));
+    assert.deepEqual(data.recent.map((e) => e.agent), ['lead', 'kid']);
+    assert.equal(data.recent[1].stage, 'Stage 1');
+  } finally {
+    await floor.close();
+  }
+});

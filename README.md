@@ -52,7 +52,9 @@ Coloured magnets on each whiteboard show every team member's status at a glance.
 
 **Replay.** Missed something? Press `R` (or the clock button) to rewind. The floor replays everything it has seen in the last 30 minutes at 4× speed, paper planes and all. Drag the timeline to jump to any moment: orange ticks are messages, amber ticks are agents waiting on you or hitting errors, green ticks are arrivals. `Space` pauses, `←` and `→` step 10 seconds, and **Live** takes you back to now. Replay runs entirely in your browser, from the same reducer the server uses, so what you see is exactly what happened.
 
-**Controls:** drag to pan, right-drag to orbit, scroll to zoom, click an agent or a room. `F` frames everyone, `[` and `]` step through agents, `R` opens replay, `T` switches day and night, `Esc` closes things. On touch: one finger pans, two fingers zoom and rotate.
+**Office log.** Press `L` (or the list button) for a running, plain-language log: who did what, who handed what to whom, and when someone needs you. It follows the selected agent's room, follows replay, and **Copy** puts the whole log on your clipboard as text.
+
+**Controls:** drag to pan, right-drag to orbit, scroll to zoom, click an agent or a room. `F` frames everyone, `[` and `]` step through agents, `R` opens replay, `L` opens the office log, `T` switches day and night, `Esc` closes things. On touch: one finger pans, two fingers zoom and rotate.
 
 ## Connect your tools
 
@@ -64,6 +66,19 @@ agent-floor setup claude --project   # prints a snippet for .claude/settings.jso
 ```
 
 Uses `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Notification`, `Stop`, `SubagentStop`, `PreCompact` and `SessionEnd`. Subagents spawned with the Task tool get their own desks and their tool calls show up on their own screens.
+
+#### Pipelines and crews
+
+For a staged pipeline (an orchestrator that hands work to a researcher, a writer, a builder, a checker), start Claude Code like this:
+
+```bash
+AGENT_FLOOR_CREW=1 AGENT_FLOOR_NAME="Agents Orchestrator" claude
+```
+
+- **Stage labels.** When a subagent's description or prompt says "Stage 2", its name tag and card show a `Stage 2` label.
+- **Crew mode** (`AGENT_FLOOR_CREW=1`). Specialists stay at their desks after they finish, so the whole team is on screen until the session ends. When the same specialist is sent back (a retry), it is briefed again at the same desk instead of a new one. The lead turns amber ("needs you") the moment it stops for your reply.
+
+Ask the orchestrator to run each stage as a subagent with the Task tool, otherwise it may do everything itself and you get one character.
 
 ### Codex
 
@@ -110,6 +125,7 @@ The full event format is in [docs/protocol.md](docs/protocol.md). More integrati
 | `AGENT_FLOOR_URL` | `http://127.0.0.1:4317` | hooks, `emit`, `demo` |
 | `AGENT_FLOOR_TEAM` | project folder name | hooks: put this session in a named room |
 | `AGENT_FLOOR_NAME` | `Claude`, `Codex`, `Cursor` | hooks: the lead's display name |
+| `AGENT_FLOOR_CREW` | off | hooks: `1` keeps finished subagents at their desks and shows the lead as "needs you" when it stops |
 | `AGENT_FLOOR_AUTOLAUNCH` | `1` | set to `0` so hooks never open the app |
 
 Group several repos into one room by giving them the same `AGENT_FLOOR_TEAM`.
