@@ -113,3 +113,93 @@ test('replaying the recorded events onto the starting state rebuilds the floor e
   assert.equal(early.agents.lead.tool, 'Bash');
   assert.equal(early.agents.helper, undefined);
 });
+
+// ---------------------------------------------------------------- pipelines (stage labels, crew mode)
+
+const spawn = (type, id, description, extra = {}) => ({
+  hook_event_name: 'PreToolUse',
+  session_id: 'sess1234',
+  cwd: '/x/linkedin-video',
+  tool_name: 'Task',
+  tool_use_id: id,
+  tool_input: { subagent_type: type, description, prompt: 'Do the work' },
+  ...extra,
+});
+const finish = (type, id) => ({ ...spawn(type, id, ''), hook_event_name: 'PostToolUse' });
+
+function withCrew(fn) {
+  const prev = process.env.AGENT_FLOOR_CREW;
+  process.env.AGENT_FLOOR_CREW = '1';
+  try {
+    return fn();
+  } finally {
+    if (prev === undefined) delete process.env.AGENT_FLOOR_CREW;
+    else process.env.AGENT_FLOOR_CREW = prev;
+  }
+}
+
+test('spawns that name a stage label the helper desk', () => {
+  const s = createState();
+  for (const ev of fromClaude(spawn('Trend Researcher', 'tu_1', 'Stage 1 - find trending topics'))) run(s, ev);
+  const kid = Object.values(s.agents).find((a) => a.parent);
+  assert.equal(kid.stage, 'Stage 1');
+  assert.equal(kid.name, 'Trend Researcher');
+  for (const ev of fromClaude(spawn('helper', 'tu_2', 'Look around'))) run(s, ev);
+  assert.equal(Object.values(s.agents).filter((a) => a.parent && a.stage).length, 1, 'no stage when none is named');
+});
+
+test('a stage label can be cleared with an empty string', () => {
+  const s = createState();
+  run(s, { type: 'status', agent: 'a', stage: 'Stage 3' });
+  assert.equal(s.agents.a.stage, 'Stage 3');
+  run(s, { type: 'status', agent: 'a', stage: '' });
+  assert.equal(s.agents.a.stage, undefined);
+});
+
+test('without crew mode, finished helpers leave and Stop is idle', () => {
+  const s = createState();
+  for (const ev of fromClaude(spawn('Trend Researcher', 'tu_1', 'Stage 1'))) run(s, ev);
+  for (const ev of fromClaude(finish('Trend Researcher', 'tu_1'))) run(s, ev);
+  const kid = Object.values(s.agents).find((a) => a.parent);
+  assert.equal(kid.stay, undefined);
+  assert.deepEqual(sweep(s, kid.lastSeen + 60_000), [kid.id]);
+  const stop = fromClaude({ hook_event_name: 'Stop', session_id: 'sess1234', cwd: '/x/linkedin-video' })[0];
+  assert.equal(stop.status, 'idle');
+});
+
+test('crew mode keeps helpers at their desks until the lead leaves', () => {
+  const s = createState();
+  withCrew(() => {
+    for (const ev of fromClaude({ hook_event_name: 'SessionStart', session_id: 'sess1234', cwd: '/x/linkedin-video' })) run(s, ev);
+    for (const ev of fromClaude(spawn('Trend Researcher', 'tu_1', 'Stage 1'))) run(s, ev);
+    for (const ev of fromClaude(finish('Trend Researcher', 'tu_1'))) run(s, ev);
+    const stop = fromClaude({ hook_event_name: 'Stop', session_id: 'sess1234', cwd: '/x/linkedin-video' })[0];
+    assert.equal(stop.status, 'waiting', 'the lead needs you as soon as it stops');
+  });
+  const kid = Object.values(s.agents).find((a) => a.parent);
+  assert.equal(kid.status, 'done');
+  assert.deepEqual(sweep(s, kid.lastSeen + 10 * 60_000), [], 'still at its desk');
+  const { effects } = run(s, fromClaude({ hook_event_name: 'SessionEnd', session_id: 'sess1234', cwd: '/x/linkedin-video' })[0]);
+  assert.ok(effects.some((e) => e.kind === 'leave' && e.agent === kid.id), 'walks out with the lead');
+  assert.equal(s.agents[kid.id].status, 'offline');
+});
+
+test('crew mode reuses the same desk when a role is spawned again', () => {
+  const s = createState();
+  withCrew(() => {
+    for (const ev of fromClaude(spawn('Frontend Developer', 'tu_a', 'Stage 4 - build the video'))) run(s, ev);
+    for (const ev of fromClaude(finish('Frontend Developer', 'tu_a'))) run(s, ev);
+    const first = Object.values(s.agents).find((a) => a.parent);
+    const out = [];
+    for (const ev of fromClaude(spawn('Frontend Developer', 'tu_b', 'Stage 4 - fix captions'))) out.push(...run(s, ev).effects);
+    assert.equal(Object.values(s.agents).filter((a) => a.parent).length, 1, 'no second desk');
+    assert.equal(first.status, 'thinking');
+    assert.ok(out.some((e) => e.kind === 'message' && e.to === first.id), 'briefed again');
+    // Work inside the second run lands on the same desk.
+    for (const ev of fromClaude({ hook_event_name: 'PreToolUse', session_id: 'sess1234', cwd: '/x/linkedin-video', agent_id: 'ag_2', agent_type: 'Frontend Developer', tool_name: 'Bash', tool_input: { command: 'npx remotion render' } }))
+      run(s, ev);
+    assert.equal(first.activity, 'Running npx remotion render');
+    for (const ev of fromClaude(finish('Frontend Developer', 'tu_b'))) run(s, ev);
+    assert.equal(first.status, 'done');
+  });
+});

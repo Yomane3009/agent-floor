@@ -1042,6 +1042,158 @@ button {
 
 /* ---------------------------------------------------------------- small screens */
 
+/* ---------------------------------------------------------------- office log */
+
+.office-log {
+  position: absolute;
+  z-index: 5;
+  left: 16px;
+  top: calc(max(16px, env(safe-area-inset-top)) + 58px);
+  width: 360px;
+  max-height: calc(100dvh - 160px);
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px 8px 14px;
+  border-radius: var(--radius-panel);
+  opacity: 0;
+  transform: translateX(-24px) scale(0.98);
+  transform-origin: 0 0;
+  visibility: hidden;
+  transition: opacity 220ms ease, transform 420ms var(--ease-out), visibility 0s linear 420ms;
+}
+
+.office-log.show {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition: opacity 220ms ease, transform 420ms var(--ease-out), visibility 0s;
+}
+
+.is-demo .office-log {
+  top: calc(max(16px, env(safe-area-inset-top)) + 104px);
+}
+
+.log-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-bottom: 6px;
+}
+
+.log-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.log-title b {
+  font-size: 15px;
+  font-weight: 680;
+  letter-spacing: -0.01em;
+}
+
+.log-title span {
+  color: var(--text-3);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 0 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  gap: 1px;
+}
+
+.log-list li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  padding: 6px 0 7px;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.log-list li:first-child {
+  border-top: 0;
+}
+
+.log-list time {
+  grid-row: span 2;
+  color: var(--text-3);
+  font: 500 11px/1.7 'Geist Mono Variable', ui-monospace, monospace;
+}
+
+.log-who {
+  font-weight: 620;
+  overflow-wrap: anywhere;
+}
+
+.log-text {
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.log-list .lk-handoff .log-who {
+  color: color-mix(in srgb, var(--accent) 78%, var(--text));
+}
+
+.log-list .lk-attention .log-who {
+  color: color-mix(in srgb, #f5a524 70%, var(--text));
+}
+
+.log-list .lk-done .log-who {
+  color: color-mix(in srgb, #22c55e 65%, var(--text));
+}
+
+.log-stage,
+.tag-line .tag-stage,
+.card-stage {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: color-mix(in srgb, var(--accent) 75%, var(--text));
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 16px;
+  vertical-align: 1px;
+}
+
+.tag-line .tag-stage {
+  margin-right: 0;
+}
+
+.tag-line .tag-stage[hidden] {
+  display: none;
+}
+
+.log-empty {
+  margin: 4px 0 6px;
+  color: var(--text-3);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 767px) {
+  .office-log,
+  .is-demo .office-log {
+    right: 16px;
+    width: auto;
+    max-height: 42dvh;
+  }
+}
+
 /* ---------------------------------------------------------------- replay timeline */
 
 .timeline {

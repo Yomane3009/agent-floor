@@ -26,6 +26,8 @@ Only `type` and `agent` are required. Any event creates the agent and its team i
 | `text` | string | Message text, shown in a speech bubble over the sender. |
 | `task` | string | For `task` events: written on the team whiteboard. |
 | `subagent` | `{ key?, type? }` | For adapters that only know "a subagent of type X". See below. |
+| `stage` | string, up to 24 chars | A pipeline label shown on the name tag and card, e.g. `Stage 2`. Send `""` to clear it. |
+| `stay` | boolean | On `join` with a `parent`: keep this helper at its desk after it finishes, until its parent leaves. A later `join` from the same parent with the same `role` reuses that desk. |
 | `ts` | number (ms) | Optional timestamp. Defaults to now. |
 
 ## Event types
@@ -40,7 +42,7 @@ Only `type` and `agent` are required. Any event creates the agent and its team i
 
 ## Lifetime
 
-The server forgets agents that have left after 6 seconds, helpers (agents with a `parent`) 45 seconds after they finish with `done`, and anything silent for 2 hours. Empty rooms disappear with their last agent.
+The server forgets agents that have left after 6 seconds, helpers (agents with a `parent`) 45 seconds after they finish with `done` (unless they joined with `stay`, in which case they leave with their parent), and anything silent for 2 hours. Empty rooms disappear with their last agent.
 
 ## Subagent hints
 
@@ -54,7 +56,7 @@ The floor binds the hint to the oldest unbound helper of that `role` under `lead
 
 ## Reading state
 
-- `GET /stream`: Server-Sent Events. First a `snapshot` with the full state, then `event` frames (`{ event, effects }`) and `removed` frames (`{ agents: [...] }`).
+- `GET /stream`: Server-Sent Events. First a `snapshot` with the full state and `recent` (the last 30 minutes of events, for the office log), then `event` frames (`{ event, effects }`) and `removed` frames (`{ agents: [...] }`).
 - `GET /state`: the current world as JSON.
 - `GET /health`: `{ ok, version, agents }`.
 - `POST /reset`: clear the floor.

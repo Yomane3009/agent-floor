@@ -13,6 +13,8 @@ type EffectListener = (effect: ViewEffect) => void;
 export interface LogEntry {
   at: number;
   event?: FloorEvent;
+  /** The desk the event landed on, when that differs from `event.agent` (subagent hints, reused desks). */
+  actor?: string;
   removed?: string[];
 }
 
@@ -47,6 +49,8 @@ class Store {
   private base: WorldState = createState();
   private baseAt = Date.now();
   private log: LogEntry[] = [];
+  /** Events from before this browser connected (sent with the snapshot). Only the office log reads them. */
+  private before: (FloorEvent & { actor?: string })[] = [];
   /** Index of the first log entry not yet applied to `view`. */
   private cursor = 0;
   private listeners = new Set<Listener>();
@@ -87,8 +91,9 @@ class Store {
     this.emit();
   }
 
-  replace(state: WorldState) {
+  replace(state: WorldState, before: (FloorEvent & { actor?: string })[] = []) {
     this.live = state;
+    this.before = before;
     this.base = clone(state);
     this.baseAt = Date.now();
     this.log = [];
@@ -101,8 +106,8 @@ class Store {
 
   /** Apply an event that the server already normalised, with the effects it computed. */
   applyRemote(event: FloorEvent, effects: Effect[]) {
-    applyEvent(this.live, event);
-    this.record({ at: Date.now(), event: clone(event) });
+    const { actor } = applyEvent(this.live, event);
+    this.record({ at: Date.now(), event: clone(event), actor });
     if (this.view) return this.emit();
     // State first so the scene has every character before effects animate them.
     this.emit();
@@ -113,8 +118,8 @@ class Store {
   applyLocal(raw: InboundEvent) {
     const ev = normalizeEvent(raw);
     if (!ev) return;
-    const { effects } = applyEvent(this.live, ev);
-    this.record({ at: Date.now(), event: clone(ev) });
+    const { effects, actor } = applyEvent(this.live, ev);
+    this.record({ at: Date.now(), event: clone(ev), actor });
     if (this.view) return this.emit();
     this.emit();
     this.emitEffects(effects);
@@ -158,6 +163,11 @@ class Store {
   /** Earliest moment the timeline can show. */
   get start() {
     return this.baseAt;
+  }
+
+  /** Events that happened before this browser connected, oldest first. Read only. */
+  get backlog(): readonly (FloorEvent & { actor?: string })[] {
+    return this.before;
   }
 
   /** The recorded changes, oldest first. Read only. */
