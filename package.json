@@ -50,11 +50,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/develop212/agent-floor.git"
+    "url": "git+https://github.com/Yomane3009/agent-floor.git"
   },
-  "homepage": "https://github.com/develop212/agent-floor#readme",
+  "homepage": "https://github.com/Yomane3009/agent-floor#readme",
   "bugs": {
-    "url": "https://github.com/develop212/agent-floor/issues"
+    "url": "https://github.com/Yomane3009/agent-floor/issues"
   },
   "optionalDependencies": {
     "electron": "^44.7.0"
